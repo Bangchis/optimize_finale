@@ -7,7 +7,7 @@ n, m = [int(i) for i in input().split()]
 A = [[0 for j in range(m)] for i in range(n)]
 
 for i in range(n):
-    L = [int(i) for i in input().split()][0:]  # L = [ 5 1 3 5 10 12]
+    L = [int(i) for i in input().split()][1:]  # L = [ 5 1 3 5 10 12]
 
     for l in L:
         A[i][l-1] = 1
