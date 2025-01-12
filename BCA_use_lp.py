@@ -1,52 +1,50 @@
 # PYTHON
-from ortools.sat.python import cp_model
+from ortools.linear_solver import pywraplp
 
-model = cp_model.CpModel()
-n, m = map(int, input().split())
-teacher = [[0 for _ in range(m)] for _ in range(n)]
-teacher_range = []
+
+n, m = [int(i) for i in input().split()]
+
+A = [[0 for j in range(m)] for i in range(n)]
+
 for i in range(n):
-    temp = list(map(int, input().split()))
-    teacher_range.append(temp[1:])
+    L = [int(i) for i in input().split()][0:]  # L = [ 5 1 3 5 10 12]
 
-c = int(input())
-constraint = []
-for _ in range(c):
-    temp = tuple(map(int, input().split()))
-    constraint.append(temp)
+    for l in L:
+        A[i][l-1] = 1
 
-# constriant
+x = [[0 for j in range(m)] for i in range(n)]
+nconst = int(input())  # 25
+Const = []
+for i in range(nconst):
+    i, j = [int(i) for i in input().split()]
+    Const.append((i-1, j-1))
+
+
+# SETUP
+
+solver = pywraplp.Solver.CreateSolver("SCIP")
+inf = solver.infinity()
 
 for i in range(n):
     for j in range(m):
-        if j + 1 in teacher_range[i]:
-            teacher[i][j] = model.NewIntVar(0, 1, f"x{i}_{j}")
-        else:
-            teacher[i][j] = model.NewIntVar(0, 0, f"x{i}_{j}")
+        x[i][j] = solver.IntVar(lb=0, ub=A[i][j], name=f'x_{i}_{j}')
+
+# thiết lập với 25 cái constraits
+for constraint in Const:
+    j1, j2 = constraint
+    for i in range(n):
+        solver.Add(x[i][j1] + x[i][j2] <= 1)
 
 for j in range(m):
-    model.Add(sum(teacher[i][j] for i in range(n)) == 1)
+    solver.Add(solver.Sum(x[i][j] for i in range(n)) == 1)
 
-for iter in range(c):
-    sub0, sub1 = constraint[iter]
-    sub0 -= 1
-    sub1 -= 1
-    for i in range(n):
-        model.Add(teacher[i][sub0] + teacher[i][sub1] <= 1)
-
-z = model.NewIntVar(0, m, f"z")
-
+# objective function
+z = solver.NumVar(lb=0, ub=inf, name="z")
 for i in range(n):
-    model.Add(z >= sum(teacher[i][j] for j in range(m)))
+    solver.Add(z >= solver.Sum(x[i][j] for j in range(m)))
 
+solver.Minimize(z)
+solver.Solve()
 
-model.Minimize(z)
-
-solver = cp_model.CpSolver()
-status = solver.Solve(model)
-
-
-if status == cp_model.OPTIMAL:
-    print(int(solver.ObjectiveValue()))
-else:
-    print('NO_SOLUTION')
+object_sol = solver.Objective().Value()
+print(int(object_sol))
